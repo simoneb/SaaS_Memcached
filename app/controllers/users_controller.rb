@@ -12,7 +12,7 @@ class UsersController < ApplicationController
         iptables_remove_ip @user.secure_ip
         @user.secure_ip = nil;
         @user.save!(validate: false)
-        flash[:success] = "Your Memcached server is now accessible by anyone."
+        flash[:success] = "Your Go server is now accessible by anyone."
       end
     else
       if !check_ip(params[:ip])
@@ -24,7 +24,7 @@ class UsersController < ApplicationController
         iptables_add_ip(params[:ip])
         @user.secure_ip = params[:ip]
         @user.save(validate: false)
-        flash[:success] = "Your Memcached server will now work only with requests from IP #{@user.secure_ip}."
+        flash[:success] = "Your Go server will now work only with requests from IP #{@user.secure_ip}."
       end
     end
     redirect_to me_path
@@ -66,14 +66,13 @@ class UsersController < ApplicationController
   end
 
   def create_memcached_instance
-    docker_path = '/home/julien/docker-master/'
-    container_id = `#{docker_path}docker run -d -p 11211 jbarbier/memcached memcached -u daemon`
-    cmd = "#{docker_path}docker inspect #{container_id}"
-    json_infos = `#{cmd}`
+    container_id = `docker run -d sbusoli/twgo`
+    inspect_cmd = "docker inspect #{container_id}"
+    json_infos = `#{inspect_cmd}`
     i = JSON.parse(json_infos)
-    @user.memcached = i["NetworkSettings"]["PortMapping"]["11211"]
+    @user.memcached = i[0]["NetworkSettings"]["PortMapping"]["Tcp"]["8153"]
     @user.container_id = container_id
-    @user.docker_ip = i["NetworkSettings"]["IpAddress"]
+    @user.docker_ip = i[0]["NetworkSettings"]["IpAddress"]
   end
   
   $VALIDATE_IP_REGEX = /^([01]?\d\d?|2[0-4]\d|25[0-5])\.([01]?\d\d?|2[0-4]\d|25[0-5])\.([01]?\d\d?|2[0-4]\d|25[0-5])\.([01]?\d\d?|2[0-4]\d|25[0-5])$/  
